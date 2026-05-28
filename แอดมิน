@@ -481,6 +481,9 @@ CreateAttachment(cHRP, Vector3.new(0,0,0), Vector3.new(-0,0,0), Vector3.new(1,0,
 local function cloningHats(v)
     local clone = v:Clone()
     local weld = v.Handle:FindFirstChildWhichIsA("Weld")
+if not weld then 
+    return 
+end
     local weldPart1 = weld.Part1
     local newWeld = Instance.new("Weld", clone.Handle)
     local CFrame0 = v.Handle.AccessoryWeld.C0
