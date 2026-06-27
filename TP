@@ -1,0 +1,216 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local lp = Players.LocalPlayer
+
+-- ผู้สร้าง (แก้ไขตรงนี้)
+local CREATOR_NAME = "DSACD54"
+local CREATOR_ID = "DSACD54"  -- หรือใส่ชื่อที่ต้องการ
+local LOGO_ID = "108955562243970"  -- ใส่ ID รูปโลโก้ของนาย (เปลี่ยนได้)
+
+-- รอ Character โหลด
+local function waitForCharacter()
+    repeat
+        task.wait(0.1)
+    until lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+    return lp.Character
+end
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = lp:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Name = "PullAllGUI"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- พื้นหลัง
+local BgFrame = Instance.new("Frame")
+BgFrame.Parent = ScreenGui
+BgFrame.Size = UDim2.new(1, 0, 1, 0)
+BgFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+BgFrame.BackgroundTransparency = 0.8
+BgFrame.ZIndex = 0
+
+-- หน้าต่างหลัก
+local Frame = Instance.new("Frame")
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+Frame.BorderSizePixel = 2
+Frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+Frame.Size = UDim2.new(0, 300, 0, 200)
+Frame.BackgroundTransparency = 0.1
+Frame.Active = true
+Frame.Draggable = true
+
+-- หัวข้อ
+local Title = Instance.new("TextLabel")
+Title.Parent = Frame
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Position = UDim2.new(0, 0, 0, 5)
+Title.Text = "🌀 PULL ALL 🌀"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 24
+Title.Font = Enum.Font.GothamBold
+
+-- รูปโลโก้
+local Logo = Instance.new("ImageLabel")
+Logo.Parent = Frame
+Logo.Size = UDim2.new(0, 60, 0, 60)
+Logo.Position = UDim2.new(0.5, -30, 0, 50)
+Logo.Image = "rbxassetid://" .. LOGO_ID
+Logo.BackgroundTransparency = 1
+Logo.ScaleType = Enum.ScaleType.Fit
+
+-- ชื่อผู้สร้าง
+local CreatorLabel = Instance.new("TextLabel")
+CreatorLabel.Parent = Frame
+CreatorLabel.BackgroundTransparency = 1
+CreatorLabel.Size = UDim2.new(1, 0, 0, 20)
+CreatorLabel.Position = UDim2.new(0, 0, 0, 115)
+CreatorLabel.Text = "⚡ Created by " .. CREATOR_NAME .. " ⚡"
+CreatorLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+CreatorLabel.TextSize = 12
+CreatorLabel.Font = Enum.Font.Gotham
+
+-- ปุ่มเปิด/ปิด
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Parent = Frame
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.7, 0)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 40)
+ToggleBtn.Text = "⚡ OPEN ⚡"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleBtn.BorderColor3 = Color3.fromRGB(200, 200, 200)
+ToggleBtn.BorderSizePixel = 1
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+
+-- สถานะ
+local Status = Instance.new("TextLabel")
+Status.Parent = Frame
+Status.Position = UDim2.new(0.05, 0, 0.88, 0)
+Status.Size = UDim2.new(0.9, 0, 0, 20)
+Status.BackgroundTransparency = 1
+Status.Text = "▸ STATUS: OFFLINE ◂"
+Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+Status.TextSize = 11
+Status.Font = Enum.Font.Gotham
+
+-- เส้นขีดตกแต่ง
+local Line = Instance.new("Frame")
+Line.Parent = Frame
+Line.Size = UDim2.new(0.9, 0, 0, 1)
+Line.Position = UDim2.new(0.05, 0, 0.45, 0)
+Line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Line.BackgroundTransparency = 0.5
+
+local Line2 = Instance.new("Frame")
+Line2.Parent = Frame
+Line2.Size = UDim2.new(0.9, 0, 0, 1)
+Line2.Position = UDim2.new(0.05, 0, 0.65, 0)
+Line2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Line2.BackgroundTransparency = 0.5
+
+-- ตัวแปรควบคุม
+local active = false
+local pullThread = nil
+local myHRP = nil
+
+-- อัปเดตตำแหน่งตัวเอง
+local function updateMyPosition()
+    local char = waitForCharacter()
+    myHRP = char and char:FindFirstChild("HumanoidRootPart")
+    return myHRP
+end
+
+-- ฟังก์ชันดึงผู้เล่น
+local function pullPlayer(target)
+    if not target or not target.Character then return false end
+    
+    local targetHRP = target.Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP then return false end
+    
+    if not myHRP then
+        updateMyPosition()
+        if not myHRP then return false end
+    end
+    
+    local pullPos = myHRP.Position + (myHRP.CFrame.LookVector * 3) + Vector3.new(0, 2, 0)
+    
+    local success = pcall(function()
+        targetHRP.CFrame = CFrame.new(pullPos)
+        targetHRP.Velocity = Vector3.new(0, 0, 0)
+        targetHRP.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    end)
+    
+    return success
+end
+
+-- ดึงทุกคน
+local function pullAll()
+    local count = 0
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= lp then
+            if pullPlayer(player) then
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
+-- ลูปหลัก
+local function startPullLoop()
+    while active do
+        updateMyPosition()
+        local pulled = pullAll()
+        if pulled > 0 then
+            Status.Text = "▸ STATUS: PULLING " .. pulled .. " PLAYERS ◂"
+            Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+        end
+        task.wait(0.3)
+    end
+end
+
+-- เมื่อ Character เปลี่ยน
+lp.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    updateMyPosition()
+    if active then
+        Status.Text = "▸ STATUS: RESPAWNED ◂"
+    end
+end)
+
+-- ปุ่มเปิด/ปิด
+ToggleBtn.MouseButton1Click:Connect(function()
+    active = not active
+    
+    if active then
+        updateMyPosition()
+        if not myHRP then
+            Status.Text = "▸ STATUS: LOADING... ◂"
+            task.wait(1)
+            updateMyPosition()
+        end
+        
+        ToggleBtn.Text = "🔴 CLOSE 🔴"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        Status.Text = "▸ STATUS: ACTIVE ◂"
+        Status.TextColor3 = Color3.fromRGB(255, 255, 255)
+        
+        pullThread = coroutine.create(startPullLoop)
+        coroutine.resume(pullThread)
+    else
+        ToggleBtn.Text = "⚡ OPEN ⚡"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        Status.Text = "▸ STATUS: OFFLINE ◂"
+        Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+    end
+end)
+
+-- อัปเดตตำแหน่งเริ่มต้น
+updateMyPosition()
+
+print("✅ PULL ALL - Black & White Edition")
+print("🌀 Created by " .. CREATOR_NAME)
