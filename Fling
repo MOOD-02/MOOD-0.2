@@ -1,0 +1,176 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- ==================== GUI Black & White Futuristic ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MoodFling_V3"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 240, 0, 200)
+MainFrame.Position = UDim2.new(0.5, -120, 0.5, -100)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 16)
+UICorner.Parent = MainFrame
+
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+UIStroke.Thickness = 2
+UIStroke.Parent = MainFrame
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 45)
+Title.BackgroundTransparency = 1
+Title.Text = "MOOD FLING"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 26
+Title.Font = Enum.Font.GothamBlack
+Title.Parent = MainFrame
+
+local TitleGradient = Instance.new("UIGradient")
+TitleGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255,255,255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180,180,180))
+}
+TitleGradient.Parent = Title
+
+-- ปีก + เอฟเฟค
+local WingsFrame = Instance.new("Frame")
+WingsFrame.Size = UDim2.new(0, 180, 0, 70)
+WingsFrame.Position = UDim2.new(0.5, -90, 0, 55)
+WingsFrame.BackgroundTransparency = 1
+WingsFrame.Parent = MainFrame
+
+local Wings = Instance.new("ImageLabel")
+Wings.Size = UDim2.new(1, 0, 1, 0)
+Wings.BackgroundTransparency = 1
+Wings.Image = "rbxassetid://108955562243970"
+Wings.ScaleType = Enum.ScaleType.Fit
+Wings.ImageColor3 = Color3.fromRGB(255, 255, 255)
+Wings.Parent = WingsFrame
+
+-- ปุ่ม
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 200, 0, 50)
+ToggleButton.Position = UDim2.new(0.5, -100, 1, -65)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ToggleButton.Text = "ACTIVATE FLING"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 20
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Parent = MainFrame
+
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 12)
+ButtonCorner.Parent = ToggleButton
+
+local ButtonStroke = Instance.new("UIStroke")
+ButtonStroke.Color = Color3.fromRGB(255, 255, 255)
+ButtonStroke.Thickness = 2
+ButtonStroke.Parent = ToggleButton
+
+-- ==================== อนิเมชั่น ====================
+local function PlayClickAnimation()
+    TweenService:Create(ToggleButton, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
+        {Size = UDim2.new(0, 190, 0, 46)}):Play()
+    task.wait(0.1)
+    TweenService:Create(ToggleButton, TweenInfo.new(0.15, Enum.EasingStyle.Bounce), 
+        {Size = UDim2.new(0, 200, 0, 50)}):Play()
+end
+
+local function WingsFlap(active)
+    if active then
+        TweenService:Create(Wings, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), 
+            {Rotation = 15, ImageTransparency = 0.2}):Play()
+    else
+        Wings.Rotation = 0
+        Wings.ImageTransparency = 0
+    end
+end
+
+-- ทำให้หน้าต่างมีอนิเมชั่นโผล่
+MainFrame.BackgroundTransparency = 1
+MainFrame.Size = UDim2.new(0, 200, 0, 160)
+TweenService:Create(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back), 
+    {BackgroundTransparency = 0.05, Size = UDim2.new(0, 240, 0, 200)}):Play()
+
+-- Draggable
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+-- ==================== FLING แรงสุด (เน้นตกดิน) ====================
+local hiddenfling = false
+local flingThread
+
+local function SuperFling()
+    while hiddenfling do
+        RunService.Heartbeat:Wait()
+        
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if hrp then
+            local oldVel = hrp.Velocity
+            
+            -- แรงตกดินสุด ๆ (ตามที่ขอ)
+            hrp.Velocity = oldVel * 1e8 + Vector3.new(0, -250000000, 0)   -- ตกหนักมาก
+            hrp.AssemblyLinearVelocity = oldVel * 1e8 + Vector3.new(0, -350000000, 0)
+            
+            RunService.RenderStepped:Wait()
+            
+            hrp.Velocity = Vector3.new(oldVel.X * 0.2, -800, oldVel.Z * 0.2)
+            hrp.AssemblyLinearVelocity = Vector3.new(oldVel.X * 0.2, -1200, oldVel.Z * 0.2)
+            
+            RunService.Stepped:Wait()
+            
+            hrp.Velocity = Vector3.new(0, -1500, 0)   -- กระแทกพื้นแรง
+            hrp.AssemblyLinearVelocity = Vector3.new(0, -2000, 0)
+        end
+    end
+end
+
+-- ==================== Toggle ====================
+ToggleButton.MouseButton1Click:Connect(function()
+    PlayClickAnimation()
+    
+    hiddenfling = not hiddenfling
+    
+    if hiddenfling then
+        ToggleButton.Text = "DEACTIVATE"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(80, 0, 0)
+        WingsFlap(true)
+        
+        flingThread = coroutine.create(SuperFling)
+        coroutine.resume(flingThread)
+        
+    else
+        ToggleButton.Text = "ACTIVATE FLING"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        WingsFlap(false)
+        hiddenfling = false
+    end
+end)
+
+-- Hover Effect
+ToggleButton.MouseEnter:Connect(function()
+    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 40)}):Play()
+end)
+
+ToggleButton.MouseLeave:Connect(function()
+    if not hiddenfling then
+        TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
+    end
+end)
+
+print("⚡ MOOD FLING V3 โหลดเสร็จ - Black & White Edition")
+print("💀 Fling แรงตกดินสุด ๆ แล้ว!")
