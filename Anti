@@ -1,0 +1,491 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local lp = Players.LocalPlayer
+
+local AntiFling = false
+local AntiBring = false
+local AntiVelocity = false
+local AntiPhysics = false
+local AntiSuspicious = false
+
+local LastSafeCFrame = nil
+local LastPosition = nil
+
+task.spawn(function()
+
+    while true do
+        task.wait(0.5)
+
+        local char = lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+        if hrp and hrp.Velocity.Magnitude < 50 then
+            LastSafeCFrame = hrp.CFrame
+            LastPosition = hrp.Position
+        end
+    end
+end)
+
+--========================
+-- FUNCTIONS
+--========================
+
+local function StopPhysics(hrp)
+
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+
+    hrp.Velocity = Vector3.zero
+    hrp.RotVelocity = Vector3.zero
+
+    for _, v in ipairs(hrp:GetChildren()) do
+
+        if v:IsA("BodyVelocity")
+        or v:IsA("BodyAngularVelocity")
+        or v:IsA("LinearVelocity")
+        or v:IsA("AngularVelocity")
+        or v:IsA("VectorForce")
+        or v:IsA("BodyForce")
+        or v:IsA("RocketPropulsion") then
+
+            v:Destroy()
+        end
+    end
+end
+
+local function ReturnSafe(hrp)
+
+    if LastSafeCFrame then
+
+        hrp.Anchored = true
+
+        StopPhysics(hrp)
+
+        hrp.CFrame = LastSafeCFrame
+
+        task.wait(0.15)
+
+        StopPhysics(hrp)
+
+        hrp.Anchored = false
+    end
+end
+
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Anti",
+    Icon = "shield-cog", -- lucide icon
+    Author = "https://discord.gg/n5AFBybp7b",
+    Folder = "ZEN",
+    
+    Size = UDim2.fromOffset(580, 460),
+    MinSize = Vector2.new(560, 350),
+    MaxSize = Vector2.new(850, 560),
+    ToggleKey = Enum.KeyCode.LeftShift,
+    Transparent = true,
+    Theme = "Dark",
+    Resizable = true,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.42,
+    HideSearchBar = false,
+    ScrollBarEnabled = false,
+    
+    
+    User = {
+        Enabled = true,
+        Anonymous = false,
+        Callback = function()
+            print("clicked")
+        end,
+    },
+})
+
+local Tab = Window:Tab({
+    Title = "Tab Title",
+    Icon = "bird", -- optional
+    Locked = false,
+})
+
+local StatusParagraph = Tab:Paragraph({
+    Title = "SYSTEM STATUS",
+    Desc = "System Loaded"
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local PhysicsService = game:GetService("PhysicsService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local Counter = {
+    Enabled = false
+}
+
+local Connection = nil
+
+local function ForceEnableCollision()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+            part.CustomPhysicalProperties = PhysicalProperties.new(
+                1.5,     -- Density สูงขึ้นนิด
+                0.7,     -- Friction
+                0.5,     -- Elasticity
+                1,       -- Weight
+                1
+            )
+        end
+    end
+end
+
+local function ResetCollisionGroup()
+    pcall(function()
+        -- บังคับให้ตัวเรา collision กับทุกกลุ่ม
+        PhysicsService:CollisionGroupSetCollidable("Players", "Players", true)
+    end)
+end
+
+local function CounterFling()
+    if not Counter.Enabled then return end
+    
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local root = char.HumanoidRootPart
+    
+    -- 1. บังคับ CanCollide
+    ForceEnableCollision()
+    
+    -- 2. Reset Collision Group
+    ResetCollisionGroup()
+    
+    -- 3. ป้องกันและแก้ไข Velocity (สำคัญมาก)
+    if root.Velocity.Magnitude > 80 then
+        local vel = root.Velocity
+        root.Velocity = Vector3.new(vel.X * 0.4, vel.Y, vel.Z * 0.4) -- ลดแรง fling แต่ยังคงแรงกระแทก
+    end
+    
+    -- 4. ทำให้ตัวเอง "หนัก" ชั่วคราวเพื่อส่งแรงกระแทกดีขึ้น
+    root.AssemblyLinearVelocity = root.AssemblyLinearVelocity
+end
+
+-- เริ่มทำงาน
+local function Start()
+    if Connection then return end
+    Connection = RunService.Heartbeat:Connect(CounterFling)
+    print("Anti Anti-Fling ทำงาน (Force Collision + Velocity Fix)")
+end
+
+local function Stop()
+    if Connection then
+        Connection:Disconnect()
+        Connection = nil
+    end
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local AntiKill = {
+    Enabled = false,
+}
+
+local Connection = nil
+
+local function AntiKillAll()
+    if not AntiKill.Enabled then return end
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChild("Humanoid")
+    
+    if not root or not humanoid then return end
+
+    -- 1. ป้องกัน TP (รักษาตำแหน่ง)
+    root.AssemblyLinearVelocity = Vector3.new(0,0,0)
+    root.AssemblyAngularVelocity = Vector3.new(0,0,0)
+    
+    -- 2. ป้องกันการตายจาก Touch
+    for _, part in ipairs(workspace:GetDescendants()) do
+        if part:IsA("BasePart") and (part.CanTouch or part.Touched) then
+            pcall(function()
+                part.CanTouch = false
+            end)
+        end
+    end
+    
+    -- 3. รักษาสถานะ Humanoid
+    if humanoid.Health < humanoid.MaxHealth then
+        humanoid.Health = humanoid.MaxHealth
+    end
+    humanoid.PlatformStand = false
+end
+
+local function StartAntiKill()
+    if Connection then return end
+    Connection = RunService.Heartbeat:Connect(AntiKillAll)
+    print("🛡️ Anti Kill All เปิดแล้ว")
+end
+
+local function StopAntiKill()
+    if Connection then
+        Connection:Disconnect()
+        Connection = nil
+    end
+    print("🛡️ Anti Kill All ปิดแล้ว")
+end
+
+local Toggle = Tab:Toggle({
+    Title = "Anti Kill All",
+    Desc = "ป้องกัน TP All + Touch Kill",
+    Icon = "shield",
+    Type = "Checkbox",
+    Value = false,
+    Callback = function(state)
+        AntiKill.Enabled = state
+        if state then
+            StartAntiKill()
+        else
+            StopAntiKill()
+        end
+    end
+})
+
+local Toggle = Tab:Toggle({
+    Title = "Anti Anti-Fling",
+    Desc = "บังคับให้ชนกันได้ + แก้ปัญหาแรงกระแทก",
+    Icon = "shield",
+    Type = "Checkbox",
+    Value = false,
+    Callback = function(state)
+        Counter.Enabled = state
+        if state then
+            Start()
+        else
+            Stop()
+        end
+    end
+})
+
+local function SetStatus(text)
+    StatusParagraph:SetDesc(text)
+end
+
+Tab:Toggle({
+    Title = "Anti Fling",
+    Desc = "Prevent fling",
+    Type = "Toggle",
+    Value = false,
+
+    Callback = function(state)
+
+        AntiFling = state
+
+        if state then
+            SetStatus("✅ Anti Fling Enabled")
+        else
+            SetStatus("❌ Anti Fling Disabled")
+        end
+    end
+})
+
+Tab:Toggle({
+    Title = "Anti Bring",
+    Desc = "Prevent teleport bring",
+    Type = "Toggle",
+    Value = false,
+
+    Callback = function(state)
+
+        AntiBring = state
+
+        if state then
+            SetStatus("✅ Anti Bring Enabled")
+        else
+            SetStatus("❌ Anti Bring Disabled")
+        end
+    end
+})
+
+Tab:Toggle({
+    Title = "Anti Velocity",
+    Desc = "Remove strange velocity",
+    Type = "Toggle",
+    Value = false,
+
+    Callback = function(state)
+
+        AntiVelocity = state
+
+        if state then
+            SetStatus("✅ Anti Velocity Enabled")
+        else
+            SetStatus("❌ Anti Velocity Disabled")
+        end
+    end
+})
+
+Tab:Toggle({
+    Title = "Anti Physics",
+    Desc = "Remove body movers",
+    Type = "Toggle",
+    Value = false,
+
+    Callback = function(state)
+
+        AntiPhysics = state
+
+        if state then
+            SetStatus("✅ Anti Physics Enabled")
+        else
+            SetStatus("❌ Anti Physics Disabled")
+        end
+    end
+})
+
+Tab:Toggle({
+    Title = "Anti Suspicious",
+    Desc = "Detect fast players",
+    Type = "Toggle",
+    Value = false,
+
+    Callback = function(state)
+
+        AntiSuspicious = state
+
+        if state then
+            SetStatus("✅ Anti Suspicious Enabled")
+        else
+            SetStatus("❌ Anti Suspicious Disabled")
+        end
+    end
+})
+
+Tab:Button({
+    Title = "🚨 Emergency Reset",
+    Desc = "Instant reset protection",
+
+    Callback = function()
+
+        local char = lp.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+        if hrp then
+
+            StopPhysics(hrp)
+
+            ReturnSafe(hrp)
+
+            SetStatus("🚨 Emergency Reset Activated")
+        end
+    end
+})
+
+--========================
+-- MAIN LOOP
+--========================
+
+RunService.Heartbeat:Connect(function()
+
+    local char = lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    if not hrp then
+        return
+    end
+
+    --========================
+    -- ANTI FLING
+    --========================
+
+    if AntiFling then
+
+        if hrp.Velocity.Magnitude > 120 then
+
+            SetStatus("⚠️ Fling Detected")
+
+            ReturnSafe(hrp)
+        end
+    end
+
+    --========================
+    -- ANTI BRING
+    --========================
+
+    if AntiBring and LastPosition then
+
+        local dist =
+            (hrp.Position - LastPosition).Magnitude
+
+        if dist > 25 then
+
+            SetStatus("⚠️ Bring Detected")
+
+            ReturnSafe(hrp)
+        end
+    end
+
+    --========================
+    -- ANTI VELOCITY
+    --========================
+
+    if AntiVelocity then
+
+        if hrp.Velocity.Magnitude > 70 then
+
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+
+            SetStatus("⚠️ Velocity Removed")
+        end
+    end
+
+    --========================
+    -- ANTI PHYSICS
+    --========================
+
+    if AntiPhysics then
+
+        StopPhysics(hrp)
+    end
+
+    --========================
+    -- ANTI SUSPICIOUS
+    --========================
+
+    if AntiSuspicious then
+
+        for _, plr in ipairs(Players:GetPlayers()) do
+
+            if plr ~= lp then
+
+                local tchar = plr.Character
+                local thrp = tchar and tchar:FindFirstChild("HumanoidRootPart")
+
+                if thrp then
+
+                    local dist =
+                        (thrp.Position - hrp.Position).Magnitude
+
+                    local speed =
+                        thrp.Velocity.Magnitude
+
+                    if dist < 10 and speed > 80 then
+
+                        SetStatus("⚠️ Suspicious Player")
+
+                        ReturnSafe(hrp)
+                    end
+                end
+            end
+        end
+    end
+end)
